@@ -1449,14 +1449,14 @@ class ComplaintApp(tk.Tk):
                 # Adatok írása
                 today = datetime.date.today()
                 for comp_no, comp_data in data.items():
-                    txt_file.write(f"Reklamáció szám: {comp_no}\n")
+                    txt_file.write(f"Reklamáció száma: {comp_no}\n")
                     txt_file.write("-" * 30 + "\n")
-                    txt_file.write(f"Vásárló neve: {comp_data.get('customer', '')}\n")
-                    txt_file.write(f"Lakcím: {comp_data.get('customer_address', '')}\n")
-                    txt_file.write(f"Termék neve: {comp_data.get('product_name', '')}\n")
-                    txt_file.write(f"Márka: {comp_data.get('brand', '')}\n")
-                    txt_file.write(f"Panasz leírás: {comp_data.get('complaint_description', '')}\n")
-                    txt_file.write(f"Státusz: {comp_data.get('status', 'open')}\n")
+                    txt_file.write(f"Vásárló neve: {comp_data.get('customer','')}\n")
+                    txt_file.write(f"Lakcím: {comp_data.get('customer_address','')}\n")
+                    txt_file.write(f"Termék neve: {comp_data.get('product_name','')}\n")
+                    txt_file.write(f"Márka: {comp_data.get('brand','')}\n")
+                    txt_file.write(f"Panasz leírás: {comp_data.get('complaint_description','')}\n")
+                    txt_file.write(f"Státusz: {comp_data.get('status','open')}\n")
                     
                     # Határidő számítás
                     start = comp_data.get("start_date")
@@ -1865,6 +1865,52 @@ class ComplaintApp(tk.Tk):
         win.geometry('{}x{}+{}+{}'.format(width, height, x, y))
 
     # ----------------------------------------------------------------
+    #      GÖRGETHETŐ SZÖVEGMEZŐK LÉTREHOZÁSA - ÚJ FÜGGVÉNY
+    # ----------------------------------------------------------------
+    def create_scrollable_text(self, parent, label_text, text_value="", height=3):
+        """
+        Létrehoz egy görgethető szövegmezőt címkével.
+        
+        Args:
+            parent: A szülő widget
+            label_text: A címke szövege
+            text_value: Kezdeti érték a szövegmezőben
+            height: A szövegmező magassága sorokban
+            
+        Returns:
+            A létrehozott Text widget
+        """
+        frame = ttk.Frame(parent)
+        frame.pack(fill=tk.X, padx=10, pady=5)
+        
+        label = ttk.Label(frame, text=label_text, style='Bold.TLabel')
+        label.pack(anchor=tk.W)
+        
+        # Keret a szövegmező és scrollbar számára
+        text_frame = ttk.Frame(frame)
+        text_frame.pack(fill=tk.X, pady=(2, 0))
+        
+        # Scrollbar létrehozása
+        scrollbar = ttk.Scrollbar(text_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        
+        # Text widget többsoros szöveghez
+        text = tk.Text(text_frame, height=height, width=50,
+                      bg="#4B4B4B", fg="white", insertbackground="white",
+                      font=('Arial', 10), relief="flat", bd=5,
+                      yscrollcommand=scrollbar.set, wrap=tk.WORD)  # Szöveg tördelése
+        text.pack(side=tk.LEFT, fill=tk.X, expand=True)
+        
+        # Scrollbar konfigurálása
+        scrollbar.config(command=text.yview)
+        
+        # Kezdeti érték beállítása
+        if text_value:
+            text.insert(tk.END, text_value)
+        
+        return text
+
+    # ----------------------------------------------------------------
     #      RÉSZLETEK / MÓDOSÍTÁS (GÖRGETHETŐ) + GYÁRTÓI MEZŐK
     # ----------------------------------------------------------------
     def view_details_window(self):
@@ -1921,33 +1967,22 @@ class ComplaintApp(tk.Tk):
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
         
-        # Adatbeviteli mezők létrehozása
-        def create_field(parent, label_text, variable, width=50, padx=10, pady=5):
-            field_frame = ttk.Frame(parent)
-            field_frame.pack(fill=tk.X, padx=padx, pady=pady)
-            
-            label = ttk.Label(field_frame, text=label_text, style='Bold.TLabel')
-            label.pack(anchor=tk.W)
-            
-            entry = tk.Entry(field_frame, textvariable=variable, width=width,
-                            bg="#4B4B4B", fg="white", insertbackground="white",
-                            font=('Arial', 10), relief="flat", bd=5)
-            entry.pack(fill=tk.X, pady=(2, 0))
-            
-            return entry
+        # Szövegmezők szótára a kiolvasáshoz
+        text_widgets = {}
         
         # Alapadatok szakasz
         alapadatok_frame = ttk.LabelFrame(scrollable_frame, text="Alapadatok", padding=10)
         alapadatok_frame.pack(fill=tk.X, padx=10, pady=10)
 
-        cust_var = tk.StringVar(value=comp_data.get("customer",""))
-        cust_entry = create_field(alapadatok_frame, "Vásárló neve:", cust_var)
-
-        address_var = tk.StringVar(value=comp_data.get("customer_address",""))
-        address_entry = create_field(alapadatok_frame, "Lakcím:", address_var)
-
-        product_var = tk.StringVar(value=comp_data.get("product_name",""))
-        product_entry = create_field(alapadatok_frame, "Termék neve:", product_var)
+        # Görgethető szövegmezők az összes mezőhöz
+        text_widgets["customer"] = self.create_scrollable_text(
+            alapadatok_frame, "Vásárló neve:", comp_data.get("customer", ""), height=2)
+            
+        text_widgets["customer_address"] = self.create_scrollable_text(
+            alapadatok_frame, "Lakcím:", comp_data.get("customer_address", ""), height=2)
+            
+        text_widgets["product_name"] = self.create_scrollable_text(
+            alapadatok_frame, "Termék neve:", comp_data.get("product_name", ""), height=2)
 
         # Márka combobox
         brand_frame = ttk.Frame(alapadatok_frame)
@@ -1960,31 +1995,31 @@ class ComplaintApp(tk.Tk):
         brand_combo = ttk.Combobox(brand_frame, textvariable=brand_var, values=BRAND_OPTIONS)
         brand_combo.pack(fill=tk.X, pady=(2, 0))
 
-        complaint_var = tk.StringVar(value=comp_data.get("complaint_description",""))
-        complaint_entry = create_field(alapadatok_frame, "Panasz leírás:", complaint_var)
+        text_widgets["complaint_description"] = self.create_scrollable_text(
+            alapadatok_frame, "Panasz leírás:", comp_data.get("complaint_description", ""), height=4)
+            
+        text_widgets["status"] = self.create_scrollable_text(
+            alapadatok_frame, "Státusz:", comp_data.get("status", "open"), height=1)
 
-        status_var = tk.StringVar(value=comp_data.get("status","open"))
-        status_entry = create_field(alapadatok_frame, "Státusz:", status_var, width=20)
-
-        # Gyártói válasz
-        man_response_var = tk.StringVar(value=comp_data.get("manufacturer_response") or "")
-        man_response_entry = create_field(alapadatok_frame, "Gyártó válasza:", man_response_var)
+        # Gyártói válasz - nagyobb magasság
+        text_widgets["manufacturer_response"] = self.create_scrollable_text(
+            alapadatok_frame, "Gyártó válasza:", comp_data.get("manufacturer_response") or "", height=4)
 
         # Határidők szakasz
         hataridok_frame = ttk.LabelFrame(scrollable_frame, text="Határidők", padding=10)
         hataridok_frame.pack(fill=tk.X, padx=10, pady=10)
 
-        start_var = tk.StringVar(value=comp_data.get("start_date",""))
-        start_entry = create_field(hataridok_frame, "(Saját) Ügyintézés kezdete (YYYY-MM-DD):", start_var, width=15)
-
-        deadline_var = tk.StringVar(value=comp_data.get("deadline_days",""))
-        deadline_entry = create_field(hataridok_frame, "(Saját) Határidő (napokban):", deadline_var, width=5)
-
-        man_sent_var = tk.StringVar(value=comp_data.get("manufacturer_sent_date",""))
-        man_sent_entry = create_field(hataridok_frame, "Gyártónak elküldve (YYYY-MM-DD):", man_sent_var, width=15)
-
-        man_deadline_var = tk.StringVar(value=comp_data.get("manufacturer_deadline_days",""))
-        man_deadline_entry = create_field(hataridok_frame, "Gyártói válasz határideje (napokban):", man_deadline_var, width=5)
+        text_widgets["start_date"] = self.create_scrollable_text(
+            hataridok_frame, "(Saját) Ügyintézés kezdete (YYYY-MM-DD):", comp_data.get("start_date", ""), height=1)
+            
+        text_widgets["deadline_days"] = self.create_scrollable_text(
+            hataridok_frame, "(Saját) Határidő (napokban):", comp_data.get("deadline_days", ""), height=1)
+            
+        text_widgets["manufacturer_sent_date"] = self.create_scrollable_text(
+            hataridok_frame, "Gyártónak elküldve (YYYY-MM-DD):", comp_data.get("manufacturer_sent_date", ""), height=1)
+            
+        text_widgets["manufacturer_deadline_days"] = self.create_scrollable_text(
+            hataridok_frame, "Gyártói válasz határideje (napokban):", comp_data.get("manufacturer_deadline_days", ""), height=1)
 
         # Márkaspecifikus adatok (Elitestrom vagy Import)
         br = comp_data.get("brand", "").lower()
@@ -2188,21 +2223,14 @@ class ComplaintApp(tk.Tk):
         ttk.Button(button_frame, text="Letöltés", command=export_selected_file).pack(fill=tk.X, pady=2)
         ttk.Button(button_frame, text="Törlés", command=delete_selected_file).pack(fill=tk.X, pady=2)
 
-        # Mentés gomb – itt olvassuk ki MINDEN combobox/entry értékét
+        # Mentés gomb – itt olvassuk ki a szövegmezők értékeit
         def save_changes():
-            # Alapmezők
-            comp_data["customer"] = cust_var.get().strip()
-            comp_data["customer_address"] = address_var.get().strip()
-            comp_data["product_name"] = product_var.get().strip()
+            # Alapmezők kiolvasása a szövegmezőkből
+            for field, widget in text_widgets.items():
+                comp_data[field] = widget.get(1.0, tk.END).rstrip()
+                
+            # Márka mező
             comp_data["brand"] = brand_var.get().strip()
-            comp_data["complaint_description"] = complaint_var.get().strip()
-            comp_data["status"] = status_var.get().strip()
-            comp_data["manufacturer_response"] = man_response_var.get().strip()
-
-            comp_data["start_date"] = start_var.get().strip()
-            comp_data["deadline_days"] = deadline_var.get().strip()
-            comp_data["manufacturer_sent_date"] = man_sent_var.get().strip()
-            comp_data["manufacturer_deadline_days"] = man_deadline_var.get().strip()
 
             # Ha Elitestrom, olvassuk ki az i_vars comboboxokat
             if is_elitestrom:
@@ -2278,8 +2306,6 @@ class ComplaintApp(tk.Tk):
         x = (win.winfo_screenwidth() // 2) - (width // 2)
         y = (win.winfo_screenheight() // 2) - (height // 2)
         win.geometry('{}x{}+{}+{}'.format(width, height, x, y))
-
-        
 
     # ----------------------------------------------------------------
     #                    FÁJL CSATOLÁSA
